@@ -1,30 +1,33 @@
 import { notFound } from 'next/navigation'
-import { CustomMDX } from 'app/components/mdx'
+import type { Metadata } from 'next'
 import { formatDate, getBlogPosts } from 'app/blog/utils'
 import { baseUrl } from 'app/sitemap'
 
-export async function generateStaticParams() {
-  let posts = getBlogPosts()
-
-  return posts.map((post) => ({
-    slug: post.slug,
-  }))
+interface Params {
+  slug: string
 }
 
-export function generateMetadata({ params }) {
-  let post = getBlogPosts().find((post) => post.slug === params.slug)
+export async function generateStaticParams(): Promise<Params[]> {
+  const posts = getBlogPosts()
+  return posts.map((post) => ({ slug: post.slug }))
+}
+
+type Props = {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const post = getBlogPosts().find((p) => p.slug === id)
+
   if (!post) {
-    return
+    return { title: 'Not found' }
   }
 
-  let {
-    title,
-    publishedAt: publishedTime,
-    summary: description,
-    image,
-  } = post.metadata
-  let ogImage = image
-    ? image
+  const { title, publishedAt, summary: description, image } = post.metadata
+  const ogImage = image
+    ? `${baseUrl}${image}`
     : `${baseUrl}/og?title=${encodeURIComponent(title)}`
 
   return {
@@ -34,13 +37,9 @@ export function generateMetadata({ params }) {
       title,
       description,
       type: 'article',
-      publishedTime,
+      publishedTime: publishedAt,
       url: `${baseUrl}/blog/${post.slug}`,
-      images: [
-        {
-          url: ogImage,
-        },
-      ],
+      images: [ogImage],
     },
     twitter: {
       card: 'summary_large_image',
@@ -51,15 +50,16 @@ export function generateMetadata({ params }) {
   }
 }
 
-export default function Blog({ params }) {
-  let post = getBlogPosts().find((post) => post.slug === params.slug)
+export default async function Blog({ params }) {
+  const {slug} = await params;
+  const post = getBlogPosts().find((p) => p.slug === slug)
 
   if (!post) {
     notFound()
   }
 
   return (
-    <section>
+    <section className="container mx-auto px-4 py-8">
       <script
         type="application/ld+json"
         suppressHydrationWarning
@@ -67,14 +67,14 @@ export default function Blog({ params }) {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'BlogPosting',
-            headline: post.metadata.title,
-            datePublished: post.metadata.publishedAt,
-            dateModified: post.metadata.publishedAt,
-            description: post.metadata.summary,
-            image: post.metadata.image
-              ? `${baseUrl}${post.metadata.image}`
-              : `/og?title=${encodeURIComponent(post.metadata.title)}`,
-            url: `${baseUrl}/blog/${post.slug}`,
+            headline: post!.metadata.title,
+            datePublished: post!.metadata.publishedAt,
+            dateModified: post!.metadata.publishedAt,
+            description: post!.metadata.summary,
+            image: post!.metadata.image
+              ? `${baseUrl}${post!.metadata.image}`
+              : `${baseUrl}/og?title=${encodeURIComponent(post!.metadata.title)}`,
+            url: `${baseUrl}/blog/${post!.slug}`,
             author: {
               '@type': 'Person',
               name: 'My Portfolio',
@@ -82,16 +82,26 @@ export default function Blog({ params }) {
           }),
         }}
       />
-      <h1 className="title font-semibold text-2xl tracking-tighter">
-        {post.metadata.title}
-      </h1>
-      <div className="flex justify-between items-center mt-2 mb-8 text-sm">
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          {formatDate(post.metadata.publishedAt)}
-        </p>
-      </div>
-      <article className="prose">
-        <CustomMDX source={post.content} />
+
+      <h1 className="text-3xl font-bold">{post!.metadata.title}</h1>
+
+      <time
+        dateTime={post!.metadata.publishedAt}
+        className="block mt-2 text-sm text-neutral-600 dark:text-neutral-400"
+      >
+        {formatDate(post!.metadata.publishedAt)}
+      </time>
+
+      {post!.metadata.image && (
+        <img
+          src={post!.metadata.image}
+          alt={post!.metadata.title}
+          className="my-6 rounded-lg"
+        />
+      )}
+
+      <article className="prose dark:prose-invert">
+        {post.content}
       </article>
     </section>
   )
