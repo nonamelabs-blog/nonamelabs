@@ -1,4 +1,5 @@
-import { BlogPosts } from 'app/components/posts'
+// TODO: add back in for index
+// import { BlogPosts } from 'app/components/posts'
 
 export default function Page() {
   return (
@@ -14,7 +15,7 @@ export default function Page() {
         mode, which eases long coding sessions by reducing eye strain.`}
       </p>
       <div className="my-8">
-        <BlogPosts />
+        {/* <BlogPosts /> */}
       </div>
     </section>
   )
