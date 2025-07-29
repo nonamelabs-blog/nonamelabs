@@ -109,6 +109,8 @@ html {
 
 .prose ul {
   @apply list-disc pl-6;
+  list-style-type: none;
+  padding: 0;
 }
 
 .prose ol {
